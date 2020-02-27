@@ -1,0 +1,32 @@
+{
+  "type": "cartesian_ext",
+  "enums": [
+    { "type": "cartesian",
+      "vars": {
+        "size": [ 2 ],
+        "routing": [ "static" ],
+        "seed": [ 1, 2, 3, 4, 5 ],
+        "meshDist": [ 60, 100, 140, 200 ],
+        "staDist": [ 0 ],
+        "txPower": [ 16, 20, 24, 28 ],
+        "hwmp": [ 0 ]
+      }
+    },
+    { "type": "list",
+      "list": [
+        {
+          "meshZ":  5,
+          "lossmodel": "los"
+        },
+        {
+          "meshZ":  5,
+          "lossmodel": "nlos"
+        },
+        {
+          "meshZ":  25,
+          "lossmodel": "nlos"
+        }
+      ]
+    }
+  ]
+}

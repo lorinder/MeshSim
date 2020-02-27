@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+# Convert (longitude, latitude) pairs to a 2-dimensional map with each
+# dimensions in meters.
+#
+# Input file format:  One record per line of the form
+#
+#   <tag> <long> <lat>
+#
+# where <tag> is an identifier and ignored.  Lines starting with # are
+# considered comments and ignored
+
+import sys
+import math
+
+
+def read_file(fp):
+    ret = []
+    for line in fp:
+        line = line.strip()
+        if len(line) == 0 or line[0] == '#':
+            continue
+        line = line.split()
+        row = (float(line[1]), float(line[2]))
+        ret.append(row)
+    return ret
+
+def longlat2m(points_array):
+
+    # Get average longitude and latitude
+    avg_long = sum(lon for lon, lat in points_array) / len(points_array)
+    avg_lat = sum(lat for lon, lat in points_array) / len(points_array)
+    print("Average longitude:", avg_long)
+    print("Average latitude:", avg_lat)
+
+    # Compute meters per degree for longitude
+    # and then latitude
+    radius_earth=6356000. # radius of earth in meters
+    long_m_per_deg = radius_earth * 2 * math.pi/360
+    lat_m_per_deg = long_m_per_deg * \
+                    math.cos(avg_long * 2 * math.pi / 360.)
+
+    # Convert
+    ret = []
+    for (lon, lat) in points_array:
+        ret.append(( (lat - avg_lat) * lat_m_per_deg,
+                     (lon - avg_long) * long_m_per_deg ))
+    return ret
+        
+arr = read_file(sys.stdin)
+cvt = longlat2m(arr)
+for (x, y) in cvt:
+    print("%5.2f %5.2f" % (x, y))
+
+            
+

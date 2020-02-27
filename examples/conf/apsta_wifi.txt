@@ -1,0 +1,33 @@
+# Configuration of the wifi AP<->STA
+
+# The "standard" directive sets the wifi standard.  Possible values:
+#   "a"		802.11a
+#   "b"		802.11b
+#   "g"		802.11g
+#   "n2.4"	802.11n in the 2.4GHz band
+#   "n5"	802.11n in the 5GHz band
+#   "ac"	802.11ac
+#   "ax2.4"	802.11ax in the 2.4GHz band
+#   "ax5"	802.11ax in the 5GHz band
+standard n2.4
+
+# The "ratecontrol" directive sets the RemoteStationManager.  First token is the
+# remote station manager type, followed by attribute values.
+ratecontrol ns3::MinstrelHtWifiManager
+
+# Rows starting with the channel directive set the channel model.
+# If no "channel" directive appears at all, the
+# YansWifiChannelHelper::Default() model is used, otherwise the channel
+# model is constructed from the channel directives.  The example below
+# is the default model spelled out.
+
+# The "channel delay" directive is of the form:
+#   channel delay <delaymodel> [ <attribute=value> ... ]
+channel delay ns3::ConstantSpeedPropagationDelayModel
+
+# The "channel add_loss" directive adds a loss model.  (Complicated loss
+# models can be constructed by adding multiple loss models.)
+#   channel add_loss <lossmodel> [ <attribute=value> ... ]
+channel add_loss ns3::LogDistancePropagationLossModel
+
+# vim:ft=conf

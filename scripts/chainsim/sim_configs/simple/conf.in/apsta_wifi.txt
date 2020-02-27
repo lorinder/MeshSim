@@ -1,0 +1,12 @@
+standard n2.4
+ratecontrol ns3::MinstrelHtWifiManager
+
+#
+# Use log distance model, but with the reference loss chosen for the
+# 2.4GHz band.  That value was computed for a reference distance of 1m
+# with the Friis model.
+#
+channel delay ns3::ConstantSpeedPropagationDelayModel
+channel add_loss ns3::LogDistancePropagationLossModel ReferenceLoss=40.05
+
+# vim:ft=conf

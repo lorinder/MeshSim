@@ -1,0 +1,5 @@
+# Configuration file for location of mesh (AP) nodes
+
+ns3::GridPositionAllocator MinX=0 MinY=0 DeltaX={meshDist} DeltaY=0 Z={meshZ} GridWidth=1000
+
+# vim:ft=conf

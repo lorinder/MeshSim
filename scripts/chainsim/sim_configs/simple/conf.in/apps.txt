@@ -1,0 +1,12 @@
+# Configuration file for applications running in the system
+
+echo_srv	10.1.1.1	echo_server
+echo_cl		10.1.4.1	echo_client
+
+srv		10.1.1.1	file_server StartTime=20s SendSize=65536
+cl		10.1.4.1	client
+
+connect echo_cl echo_srv
+connect srv cl
+
+# vim:ft=conf

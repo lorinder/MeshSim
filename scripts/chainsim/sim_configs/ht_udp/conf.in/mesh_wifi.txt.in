@@ -1,0 +1,14 @@
+standard n5
+ratecontrol ns3::MinstrelHtWifiManager
+
+#channel delay ns3::ConstantSpeedPropagationDelayModel
+#channel add_loss ns3::LogDistancePropagationLossModel ReferenceLoss=46.6777
+
+channel delay ns3::ConstantSpeedPropagationDelayModel
+channel add_loss ns3::RangePropagationLossModel MaxRange=35
+
+phy_attribs Antennas={antennas} ChannelNumber={channelNumber}
+phy_attribs MaxSupportedTxSpatialStreams={maxStreams}
+phy_attribs MaxSupportedRxSpatialStreams={maxStreams}
+
+# vim:ft=conf

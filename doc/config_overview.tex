@@ -1,0 +1,60 @@
+\documentclass{article}
+
+\title{Configuration}
+
+\begin{document}
+
+\section{Topology overview}
+
+The Backhaul node has IP address 10.1.1.1.  In the Mesh, the interfaces
+communicating among each other have IP addresses 10.1.2.$x$; the Mesh
+access points (APs) have IP addresses 10.1.3.$x$ with $1 \leq x \leq
+100$, the stations (STAs) have IP addresses 10.1.3.$y$ with $101 \leq
+y$.
+
+\section{Configuration}
+
+\subsection{Command line arguments}
+
+The most basic settings (e.g., the number of mesh nodes, number of STAs,
+etc.) are currently configured on the command line, run
+\begin{verbatim}
+mesh_sim --help
+\end{verbatim}
+for a list of parameters that are set this way.
+
+Additionally, as a first positional argument, \verb@mesh_sim@ takes the
+name of a directory where configuration files reside.  The second
+positional argument is the location of the output directory where pcap
+files will be placed.
+
+\subsection{Configuration files}
+
+Configuration files have an ad-hoc format which is geared towards easy
+readability and editability for the task at hand.  Lines starting with \#
+is are comment lines and skipped.  Empty lines are skipped as well.
+The other lines typically have several tokens separated by white space.
+
+There are multiple configuration files in a configuration directory:
+\begin{itemize}
+
+\item \verb@mesh_mobility.txt@.  This file contains information about
+the locations of mesh nodes.
+
+\item \verb@sta_mobility.txt@.  This file contains information about the
+location of STAs.
+
+\item \verb@apps.txt@.  This file contains information about which apps
+run on which nodes.
+
+\end{itemize}
+There is a set of well documented sample configuration files in the
+\verb@examples/conf/@ directory.  Please refer to them for further
+details.  The sample files also work, run them with
+\begin{verbatim}
+./build/sim/mesh_sim examples/conf
+\end{verbatim}
+from the root of the tree.  (This assumes, the build directory was
+placed at \verb@build/@.)
+
+\end{document}

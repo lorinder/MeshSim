@@ -1,0 +1,117 @@
+# Configuration file for applications running in the system
+#
+# This file is composed of lines of the following formats:
+#  (1) <tag> <host-ip> <app-type> <attribute-assignments...>
+#  (2) "defaults" <attribute-assignments>
+#  (3) "connect" <tx-host> <rx-host>
+#
+# A statement of form (1) creates an app with a unique name 'tag'
+# running on the host with IP address host-ip.  The app-type is the type
+# of app being run, see below.  Attribute values are assigned from what
+# follows the app type, if any.
+#
+# Supported app-types are
+# 
+# echo_client	A client initiating UDP echo requests which can be
+# 		responded to by a server.
+#
+# echo_server	The server part of UDP echo
+#
+# file_server	An app sending file traffic at as high a rate as
+# 		possible (ns3::BulkSendApplication); typically TCP.
+#
+# streaming_server Constant rate streaming app (typically UDP).
+#
+# client	An app receiving traffic; can be used as the receiving
+# 		end for both file server and streaming server.  This
+# 		app produces a trace of received data amounts with time
+# 		stamps.
+#
+# web_server	ns3::ThreeGppHttpServer
+#
+# web_client	ns3::ThreeGppHttpClient
+# 
+# About (2):  A "defaults" line is useful to specify attribute values
+# that are applied to all subsequent apps; this allows to specify
+# some attributes once when they are used several times.  A typical such
+# attribute would be "StartTime".  As a special quirk an empty
+# assignment "Foo=", i.e., where no value is present, removes the
+# corresponding key again from the default attributes.
+#
+# Please refer to the documentation of the corresponding ns3 objects for
+# a list and meaning of attributes.  Also, the --Print-Attributes=[typeid]
+# command line switch of mesh_sim can come in handy.
+#
+# The "connect" line (3) connects a sender and a receiver App.  This is
+# needed to tell the apps where to send to and receive from and agree on
+# a common protocol, etc.  Format is:
+#
+# connect <tx-tag> <rx-tag>
+#
+# Here tx-tag is the tag of the initiating application, and rx-tag of
+# the receiving application; in which field each app should appear
+# depends on its type:
+#
+# app-type		rx or tx
+# ------------------------------
+# echo_client		tx
+# echo_server		rx
+# file_server		tx
+# streaming_server	tx
+# client		rx
+# web_server		rx
+# web_client		tx
+# ------------------------------
+#
+# By convention, the protocol settings are determined from the tx app.
+# Ports are assigned sequentially for each connect, starting from 1001.
+
+# Start a few UDP echo clients
+echo1-cl	10.1.4.1	echo_client
+echo2-cl	10.1.4.2	echo_client
+echo3-cl	10.1.4.3	echo_client
+echo4-cl	10.1.4.4	echo_client
+echo5-cl	10.1.4.5	echo_client
+echo6-cl	10.1.4.6	echo_client
+echo7-cl	10.1.4.7	echo_client
+echo8-cl	10.1.4.8	echo_client
+echo9-cl	10.1.4.9	echo_client
+
+echo1-srv	10.1.1.1	echo_server
+echo2-srv	10.1.1.1	echo_server
+echo3-srv	10.1.1.1	echo_server
+echo4-srv	10.1.1.1	echo_server
+echo5-srv	10.1.1.1	echo_server
+echo6-srv	10.1.1.1	echo_server
+echo7-srv	10.1.1.1	echo_server
+echo8-srv	10.1.1.1	echo_server
+echo9-srv	10.1.1.1	echo_server
+
+# More applications
+defaults StartTime=20s
+file1-cl	10.1.4.1	client
+file1-srv	10.1.1.1	file_server
+file2-cl	10.1.4.2	client
+file2-srv	10.1.1.1	file_server
+stream3-cl	10.1.4.3	client
+stream3-srv	10.1.1.1	streaming_server OnTime=ns3::ConstantRandomVariable[Constant=4.0]
+web4-cl		10.1.4.4	web_client
+web4-srv	10.1.1.1	web_server
+
+# connections
+connect		echo1-cl	echo1-srv
+connect		echo2-cl	echo2-srv
+connect		echo3-cl	echo3-srv
+connect		echo4-cl	echo4-srv
+connect		echo5-cl	echo5-srv
+connect		echo6-cl	echo6-srv
+connect		echo7-cl	echo7-srv
+connect		echo8-cl	echo8-srv
+connect		echo9-cl	echo9-srv
+
+connect		file1-srv	file1-cl
+connect		file2-srv	file2-cl
+connect		stream3-srv	stream3-cl
+connect		web4-cl		web4-srv
+
+# vim:ft=conf

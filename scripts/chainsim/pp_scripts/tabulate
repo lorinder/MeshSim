@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+
+import sys
+import re
+import getopt
+
+def build_table(file_name):
+    tbl = {}
+
+    # Read table data
+    fp = open(file_name, 'r')
+    for l in fp:
+        l = l.strip()
+        if len(l) == 0:
+            continue
+        l = l.split(' ')
+        if l[0] == 'file':
+            size = int(re.search(",size_([0-9]*),", l[1]).group(1))
+        elif l[0] == 'xfer_bytes':
+            xfer_bytes = int(l[1])
+            if size in tbl:
+                tbl[size].append(xfer_bytes)
+            else:
+                tbl[size] = [ xfer_bytes ]
+    fp.close()
+
+    # Sort columns
+    for k in tbl.keys():
+        tbl[k].sort()
+
+    return tbl
+
+def print_table(tbl, width, factor=None):
+    nrow = max(len(x) for x in tbl.values())
+    cols = sorted(x for x in tbl.keys())
+
+    int_format = "%%%dd" % width
+    str_format = "%%%ds" % width
+    float_format = "%%%d.2f" % width
+    
+    # Print heading
+    heading = ""
+    for cv in cols:
+        heading += (int_format % cv)
+    print(heading)
+    print(width * len(cols) * '-')
+
+    # Print entries
+    for i in range(nrow):
+        row = ""
+        for cv in cols:
+            index = i - nrow + len(tbl[cv])
+            if index >= 0:
+                if factor is None:
+                    row += (int_format % (tbl[cv][index],))
+                else:
+                    row += (float_format % (tbl[cv][index] * factor,))
+            else:
+                row += (str_format % "")
+        print(row)
+
+    print(width * len(cols) * '-')
+
+def usage():
+    print("Tabulate data from tcp average throughput data.")
+    print("")
+    print("This tool processes the output of pcap_eval, when run with")
+    print("no argument.  the input file is assumed to contain metrics")
+    print("from multiple pcap files, with the chain size stored in the")
+    print("file name.  It then creates a table of measurements, one")
+    print("column for each chain size.  The rate entries in each column")
+    print("are then sorted in increasing size.")
+    print("")
+    print("Usage:")
+    print("tabulate [-h] [-d <duration>] [-w <width>] [tcpavg.txt files...]")
+    print("")
+    print("Switches:")
+    print("  -h       display this help")
+    print("  -d <dur> download duration in seconds;  when")
+    print("           this is given, a rate in Mbps will be")
+    print("           computed, otherwise aggregate download")
+    print("           size in bytes.")
+    print("  -w <wid> column width.")
+
+if __name__ == "__main__":
+    # default arguments
+    duration = None
+    width = 10
+
+    # read command line arguments
+    opts, args = getopt.getopt(sys.argv[1:], "hd:w:")
+    for o, v in opts:
+        if o == '-h':
+            usage()
+            sys.exit(0)
+        elif o == '-d':
+            duration = float(v)
+        elif o == '-w':
+            width = int(v)
+        else:
+            sys.exit(1)
+    if len(args) != 1:
+        sys.stderr.write("Error:  Expect exactly one stats file on "
+                         "command line\n")
+        sys.exit(1)
+            
+    # Create table
+    tbl = build_table(args[0])
+    if len(tbl) == 0:
+        sys.stderr.write("Error:  No data points found in file `%s'\n" %
+                         args[0])
+        sys.exit(1)
+
+    # Print table
+    if duration is None:
+        print_table(tbl, width)
+    else:
+        print_table(tbl, width, 8. / duration / 1000000.)

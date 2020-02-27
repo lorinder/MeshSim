@@ -1,0 +1,17 @@
+{ "type": "cartesian",
+  "vars": {
+    "seed": [ 1 ],
+
+    "proto": [ "udp", "tcp" ],
+
+    "meshSize": [ 1, 2, 3, 4, 8 ],
+    "meshDist": [ 30 ],
+
+   "staSize": [ 1, 2, 3, 4, 8 ],
+   "staDist": [ 30 ],
+   "rtsCtsThresh" : [ 65535 ],
+   "cwmin" : [ 9999 ],
+   "peerLinkRetries": [ 4 ],
+   "udpCumRate" : [ 20 ]
+ }
+}

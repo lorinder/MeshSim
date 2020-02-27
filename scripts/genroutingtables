@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+
+#
+# Generate routing tables for MeshSim (i.e., a conf/routing.txt file).
+# The input format are rows of the form
+#
+#   <sta-ip>    <mesh-ip>
+#
+# indicating which mesh node each station is connected to.
+# the mesh IP must be of the form 10.1.2.x (with 1 <= x < 100) and the STA IP of
+# the form 10.1.3.y (with 101 <= y < 256).
+#
+# mesh IPs that have no station associated have lines of the form 
+#
+#   X           <mesh-ip>
+#
+
+import sys
+import getopt
+import re
+
+# Print heading & tables for backhaul
+print("# routing tables generated with %s" % (sys.argv[0]))
+print("proto none")
+print("")
+print("# backhaul")
+print("routes_on 10.1.1.1")
+print("0.0.0.0/0\t10.1.1.1\t10.1.1.2")
+print("")
+
+def decode_ip(ip_as_str):
+    """Decode an IP address into a tuple.
+
+    Input is a string of the form "a.b.c.d" output is a 4-tuple of
+    integers a, b, c, d."""
+    return tuple([int(x) for x in ip_as_str.split('.')])
+
+def encode_ip(a,b,c,d):
+    """Create an IP address string \"a.b.c.d\"."""
+    return "%d.%d.%d.%d" % (a, b, c, d);
+
+def ap_ip(mesh_ip):
+    a,b,c,d = decode_ip(mesh_ip)
+    return encode_ip(a, b, 3, d)
+
+def sta2w_ip(sta_ip):
+    a,b,c,d = decode_ip(sta_ip)
+    return encode_ip(a,b,4,d)
+
+def wiredsta_ip(sta_ip):
+    a,b,c,d = decode_ip(sta_ip)
+    return encode_ip(a,b,4,d-100)
+
+# Read input file
+pairs = []
+if sys.argv[1] == "-":
+    fp = sys.stdin
+else:
+    fp = open(sys.argv[1], 'r')
+for l in fp:
+    l = l.strip()
+    if len(l) == 0 or l[0] == '#':
+        continue
+    pairs.append(l.split())
+fp.close()
+
+# Find the set of mesh nodes
+# Filter out pairs that are just there to mark existence of mesh nodes.
+mesh_nodes = sorted(set(m for s, m in pairs))
+pairs = [ (a, b) for (a, b) in pairs if a != "X" ]
+
+# Print mesh part
+print("# mesh APs")
+for mesh in mesh_nodes:
+    print("routes_on %s" % mesh)
+    if mesh == "10.1.2.1":
+        # backhaul connected directly to this node
+        print("10.1.1.0/24\t10.1.1.2\t10.1.1.1")
+    else:
+        # backhaul is on another mesh node, route it through.
+        print("10.1.1.0/24\t%s\t10.1.2.1" % mesh)
+    # Add explicit route for every STA
+    for sta2, mesh2 in pairs:
+        if mesh2 == mesh:
+            # STA is connected to this mesh node
+            for addr in (sta2, sta2w_ip(sta2), wiredsta_ip(sta2)):
+                print("%s\t%s\t%s" % (addr, ap_ip(mesh), sta2))
+        else:
+            # STA is connected to another mesh node
+            for addr in (sta2, sta2w_ip(sta2), wiredsta_ip(sta2)):
+                print("%s\t%s\t%s" % (addr, mesh, mesh2))
+    print("")
+
+# Print AP part
+print("# STAs")
+for sta, mesh in pairs:
+    print("routes_on %s" % sta)
+    print("0.0.0.0/0\t%s\t%s" % (sta, ap_ip(mesh)))
+    print("%s\t%s" % (wiredsta_ip(sta), sta2w_ip(sta)))
+    print("")
+
+# Print wired STA part
+print("# wired STAs")
+for sta, mesh in pairs:
+    print("routes_on %s" % wiredsta_ip(sta))
+    print("0.0.0.0/0\t%s\t%s" % (wiredsta_ip(sta), sta2w_ip(sta)))
+    print("")
+
+# vim:sw=4:sts=4:et

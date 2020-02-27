@@ -1,0 +1,31 @@
+{ "type": "cartesian_ext",
+  "enums": [
+    { "type": "cartesian",
+      "vars": {
+        "size": [ 2 ],
+        "routing": [ "olsr" ],
+        "seed": [ 1, 2, 3 ],
+        "meshDist": [ 30 ],
+        "staDist": [ 30 ],
+        "hwmp": [ 0 ],
+    
+        "channelNumber": [ 36, 38 ],
+        "shortGuard": [ 1 ],
+        "greenfield": [ 0 ],
+        "peers": [ "intramesh", "apsta" ]
+      }
+    },
+    { "type": "list",
+      "list" : [
+        {
+          "maxStreams": 1,
+          "antennas": 1
+        },
+        {
+          "maxStreams": 3,
+          "antennas": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+
+# Tool to create a database of simulation results.
+
+import glob
+import os
+import re
+import sys
+
+import sqlite3
+import numpy as np
+
+dir_pattern='run/params_?????'
+
+def get_params():
+    """Returns a dict with parameter names and their types.
+
+    The keys of the returned dict contain the parameter names,
+    the value codify the type of those parameters. The type is
+    determined by testing; if all the values can be interpreted as int,
+    it's considered an int, otherwise if they all can be interpreted as
+    float, it's a float, otherwise it's a string.  The returned type is
+    encoded as a string:
+
+        'i'     if the type's an int,
+        'f'     if the type's a float,
+        's'     if the type's a string.
+    """
+
+    params = {}
+    for fn in glob.glob(os.sep.join([dir_pattern, "params.txt"])):
+        fp = open(fn, 'r')
+        for l in fp:
+            k, v = l.strip().split()
+            if k not in params:
+                params[k] = 'i'
+
+            # determine type
+            if params[k] == 'i':
+                try:
+                    int(v)
+                except:
+                    params[k] = 'f'
+            if params[k] == 'f':
+                try:
+                    float(v)
+                except:
+                    params[k] = 's'
+        fp.close()
+
+    return params
+
+def create_params_table(conn, c):
+    #  Create the table itself
+    params = get_params()
+    cmd = 'CREATE TABLE params (id int, dir varchar(24)'
+    typename = { 'i': 'int', 'f': 'real', 's': 'varchar(24)' }
+    for k in sorted(params.keys()):
+        cmd += ", %s %s" % (k, typename[params[k]])
+    cmd += ')'
+    c.execute(cmd)
+
+    # Read and add all the parameter sets to the table
+    for dirname in sorted(glob.glob(dir_pattern)):
+        idx = int(dirname[-5:])
+        cmd = "INSERT INTO params VALUES (%d, \'%s\'" % (idx, dirname)
+        fp = open(dirname + os.sep + "params.txt", 'r')
+        vals = {}
+        for l in fp:
+            k, v = l.strip().split()
+            vals[k] = v
+        for k in sorted(params.keys()):
+            if params[k] in [ 'i', 'f' ]:
+                cmd += ", %s" % (vals[k],)
+            else:
+                assert params[k] == 's'
+                cmd += ", \"%s\"" % (vals[k],)
+        cmd += ")"
+        c.execute(cmd)
+        fp.close()
+
+    conn.commit()
+
+def _read_header(fn, vars_list):
+    vars_dict = dict(vars_list)
+
+    # Read out the values
+    values_dict = dict()
+    fp = open(fn, 'r')
+    for l in fp:
+        if len(l) == 0 or l[0] != '#':
+            break;
+        v = l.strip().split()
+        if len(v) != 4 or v[0] != '#' or v[2] != '=':
+            continue
+        values_dict[v[1]] = v[3]
+    fp.close()
+
+    # Arrange result into an ordered list and
+    # filter for only known variables
+    values_list = []
+    for varname, vartype in vars_list:
+        if varname not in values_dict:
+            values_list.append(None)
+        else:
+            val = values_dict[varname]
+            if vartype == 'i':
+                values_list.append(int(val))
+            elif vartype == 'f':
+                values_list.append(float(val))
+            elif vartype == 's':
+                values_list.append(val)
+
+    return values_list
+
+
+def _create_trace_app_table(conn, c, tbl_name, fn_pat_str, vars_list):
+    """
+    """
+    # Compute the schema for the vars_dict part.
+    vars_str = ""
+    typename = { 'i': 'int', 'f': 'real', 's': 'varchar(24)' }
+    for k, v in vars_list:
+        vars_str += ", %s %s" % (k, typename[v]);
+
+    # Create the table
+    c.execute("CREATE TABLE %s " % (tbl_name,) +
+      "(id int, params_id int, filename varchar(24)%s)" % vars_str);
+
+    rows = list(c.execute("SELECT id, dir FROM params"))
+    index = 0
+    fn_pat = re.compile(fn_pat_str)
+    for params_id, dirname in rows:
+        flist = sorted(os.listdir(dirname))
+        for fn in flist:
+            m = re.match(fn_pat, fn)
+            if m is None:
+                continue
+            hdr_vars = _read_header(dirname + os.sep + fn, vars_list)
+            stmt = "INSERT INTO %s VALUES (?, ?, ?%s)" \
+                    % (tbl_name, len(vars_list) * ", ?")
+            c.execute(stmt,
+                (index, params_id, fn) + tuple(hdr_vars))
+            index += 1
+    conn.commit()
+
+def create_trace_app_rx_table(conn, c):
+    _create_trace_app_table(conn, c,
+        "trace_app_rx",
+        "trace-app-rx-([0-9]+)\\.txt",
+        [ ('app_connect_id', 'i'),
+          ('connect_stmt_id', 'i'),
+          ('tags_tx', 's'),
+          ('tag_rx', 's') ])
+
+def create_trace_app_rx_samples_table(conn, c):
+    c.execute("CREATE TABLE trace_app_rx_samples " +
+      "(trace_app_rx_id int, time int, bytes_recv int)")
+
+    cmd = "SELECT trace_app_rx.id, dir, filename " + \
+      "FROM trace_app_rx, params WHERE trace_app_rx.params_id = params.id"
+    rows = list(c.execute(cmd))
+    for idx, path, fn in rows:
+        fp = open(path + os.sep + fn, 'r')
+        for l in fp:
+            if l[0] == '#':
+                continue;
+            time, bytes_recv = [int(x) for x in l.strip().split()]
+            c.execute("INSERT INTO trace_app_rx_samples VALUES (?, ?, ?)",
+              (idx, time, bytes_recv))
+
+    conn.commit()
+
+def _get_rate_stddev(samples):
+    # n_slots = int(samples[-1][0] - sample[0][0]) // 1000000
+
+    # First find for each second boundary the cumulative
+    # number of bytes received at that point in time
+    tlim = samples[-1][0]
+    byte_counts_cum=[]
+    for t, b in reversed(samples):
+        while t <= tlim:
+            byte_counts_cum.append(b)
+            tlim -= 1000000
+    if len(byte_counts_cum) < 3:
+        return None
+
+    # Now compute the number of bytes received within each second
+    byte_counts = []
+    for i in range(len(byte_counts_cum) - 1):
+        byte_counts.append(byte_counts_cum[i] - byte_counts_cum[i + 1])
+
+    return 8.0 * np.std(byte_counts);
+
+def create_trace_app_rx_summaries_table(conn, c):
+    c.execute("CREATE TABLE trace_app_rx_summaries " +
+      "(trace_app_rx_id int, " +
+      "max_bytes_recv int, " +
+      "min_bytes_recv int, " +
+      "max_time_recv int, " +
+      "min_time_recv int, " +
+      "rate_bps real, " +
+      "rate_stddev_bps real)");
+    cmd = "SELECT id FROM trace_app_rx"
+    trace_app_rx_id_list = list(c.execute(cmd))
+    for j, in trace_app_rx_id_list:
+        cmd = "SELECT max(bytes_recv), min(bytes_recv), " + \
+          "max(time), min(time) FROM trace_app_rx_samples " + \
+          "WHERE trace_app_rx_id = %d" % (j,)
+        r = list(c.execute(cmd))
+        assert len(r) == 1;
+        if r[0][0] is None:
+            c.execute("INSERT INTO trace_app_rx_summaries " + \
+              "VALUES (?, ?, ?, ?, ?, ?, ?)",
+              (j, None, None, None, None, 0, None))
+        else:
+            # Get the measures to determine the rate
+            r = r[0]
+            max_bytes, min_bytes, max_time, min_time = r
+            rate = 0
+            if max_time > min_time:
+                rate = (max_bytes - min_bytes) * 8.e+6 \
+                        / (max_time - min_time);
+
+            # Now figure out the standard deviation of the rate
+            rate_stddev = None
+            if max_time - 2000000 > min_time:
+                cmd = "SELECT time, bytes_recv FROM " \
+                        + "trace_app_rx_samples " \
+                        + "WHERE trace_app_rx_id=%d " % (j,) \
+                        + "ORDER BY time"
+                rate_stddev = _get_rate_stddev(tuple(c.execute(cmd)))
+
+            c.execute("INSERT INTO trace_app_rx_summaries " + \
+              "VALUES (?, ?, ?, ?, ?, ?, ?)", (j, max_bytes, min_bytes,
+              max_time, min_time, rate, rate_stddev))
+    conn.commit()
+
+def create_trace_app_pl_table(conn, c):
+    _create_trace_app_table(conn, c,
+        "trace_app_pl",
+        "trace-app-pl-([0-9]+)\\.txt",
+        [ ('app_connect_id', 'i'),
+          ('connect_stmt_id', 'i'),
+          ('tags_tx', 's'),
+          ('tag_rx', 's') ])
+
+# XXX: This could potentially be merged with
+#      create_trace_app_rx_samples_table.
+def create_trace_app_pl_samples_table(conn, c):
+    c.execute("CREATE TABLE trace_app_pl_samples " +
+      "(trace_app_pl_id int, evtype int, seqno int, seqno2 int)")
+
+    cmd = "SELECT trace_app_pl.id, dir, filename " + \
+      "FROM trace_app_pl, params WHERE trace_app_pl.params_id = params.id"
+    rows = list(c.execute(cmd))
+    for idx, path, fn in rows:
+        fp = open(path + os.sep + fn, 'r')
+        for l in fp:
+            if len(l) == 0 or l[0] == '#':
+                continue
+            l = [ x for x in l.strip().split() ]
+            evtype, seqno, seqno2 = None, None, None
+            if l[0] == 'lost_range':
+                evtype = 0
+                seqno = int(l[1])
+                seqno2 = int(l[2])
+            elif l[0] == 'dup':
+                evtype = 1
+                seqno = int(l[1])
+            elif l[0] == 'large_reorder':
+                evtype = 2
+                seqno = int(l[1])
+                seqno2 = int(l[2])
+            elif l[0] == 'largest_seqno_processed':
+                evtype = 3
+                seqno = int(l[1])
+            c.execute("INSERT INTO trace_app_pl_samples VALUES (?, ?, ?, ?)",
+              (idx, evtype, seqno, seqno2))
+    conn.commit()
+
+def create_trace_app_pl_summaries_table(conn, c):
+    c.execute("CREATE TABLE trace_app_pl_summaries " +
+      "(trace_app_pl_id int, " +
+      "loss_ev_count int, " +
+      "loss_pkt_count int, " +
+      "dup_count int, " +
+      "large_reorder_count int, "
+      "largest_seqno int)");
+    cmd = "SELECT id FROM trace_app_pl"
+    trace_app_pl_id_list = list(c.execute(cmd))
+    for j, in trace_app_pl_id_list:
+        # Get event counts
+        cmd = "SELECT evtype, count(*) FROM trace_app_pl_samples "
+        cmd += "WHERE trace_app_pl_id = %d GROUP BY evtype" % (j,)
+        evcounts_tbl = list(c.execute(cmd))
+
+        evcounts = [0, 0, 0, 0]
+        for evid, count in evcounts_tbl:
+            evcounts[evid] = count
+
+        # Get packet loss count
+        cmd = "SELECT coalesce(sum(seqno2 - seqno + 1), 0) "
+        cmd += "FROM trace_app_pl_samples "
+        cmd += "WHERE trace_app_pl_id = %d AND evtype = 0" % (j,)
+        loss_pkt_count = list(c.execute(cmd))[0][0]
+
+        # Get largest processed seq number
+        cmd = "SELECT seqno FROM trace_app_pl_samples "
+        cmd += "WHERE trace_app_pl_id = %d AND evtype = 3" % (j,)
+        lst = list(c.execute(cmd))
+        if len(lst) == 0:
+            # Either empty or incomplete data set; don't add it.
+            continue
+        assert len(lst) == 1
+        largest_seqno = lst[0][0]
+        
+        # Insert into table
+        if evcounts[3] == 1:
+            cmd = "INSERT INTO trace_app_pl_summaries VALUES " \
+                    + "(?, ?, ?, ?, ?, ?)"
+            c.execute(cmd,
+              (j, evcounts[0], loss_pkt_count, evcounts[1], evcounts[2],
+              largest_seqno))
+    conn.commit()
+
+if __name__ == "__main__":
+    # Check there is actually something here
+    v = glob.iglob(dir_pattern)
+    try:
+        v.__next__()
+    except:
+        sys.stderr.write("Error:  No directories matching \"%s\" found.\n" \
+            % (dir_pattern,)
+          + "        This typically means, createresultsdb is run\n"
+          + "        from the wrong directory.\n")
+        sys.exit(1)
+    del v
+
+
+    conn = sqlite3.connect('results.db')
+    c = conn.cursor()
+
+    print("Creating the params table.")
+    create_params_table(conn, c)
+
+    print("Creating the trace_app_rx table.")
+    create_trace_app_rx_table(conn, c)
+
+    print("Creating the trace_app_rx_samples table.")
+    create_trace_app_rx_samples_table(conn, c)
+
+    print("Creating the trace_app_rx_summaries table.")
+    create_trace_app_rx_summaries_table(conn, c)
+
+    print("Creating the trace_app_pl table.")
+    create_trace_app_pl_table(conn, c)
+
+    print("Creating the trace_app_pl_samples table.")
+    create_trace_app_pl_samples_table(conn, c)
+
+    print("Creating the trace_app_pl_summaries table.")
+    create_trace_app_pl_summaries_table(conn, c)
+
+    conn.close()

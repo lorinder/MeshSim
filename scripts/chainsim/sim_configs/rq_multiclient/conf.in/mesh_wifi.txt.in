@@ -1,0 +1,9 @@
+standard g
+ratecontrol ns3::MinstrelWifiManager RtsCtsThreshold={rtsCtsThresh}
+
+channel delay ns3::ConstantSpeedPropagationDelayModel
+channel add_loss ns3::RangePropagationLossModel MaxRange={meshDist}
+
+phy_attribs ChannelNumber=11
+
+# vim:ft=conf

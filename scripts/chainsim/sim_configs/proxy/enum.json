@@ -1,0 +1,66 @@
+{
+  "type": "cartesian_ext",
+  "enums": [
+    { "type": "singleton",
+      "vars": {
+	"seed": 2,
+	"meshDist": 30,
+	"staSize": 1,
+	"staDist": 30,
+	"rtsCtsThresh": 65535,
+	"peerLinkScale": 4
+      }
+    },
+    { "type": "union",
+      "enums": [
+        { "type": "cartesian",
+	  "vars": {
+	    "meshSize": [1, 2, 3, 4, 8 ],
+	    "proto": [ "tcp" ],
+	    "proxyMode": [ 0 ],
+	    "proxyRate": [ 0 ],
+	    "udpCumRate": [ 0 ]
+	  }
+	},
+	{ "type": "cartesian_ext",
+	  "enums": [
+	    { "type": "singleton",
+	      "vars": {
+	        "proto": "udp"
+	      }
+	    },
+	    { "type": "list",
+	      "list": [
+	        { "meshSize": 1,
+		  "udpCumRate": 21.5,
+		  "proxyMode": 0,
+		  "proxyRate": 21.5
+		},
+		{ "meshSize": 2,
+		  "udpCumRate": 20,
+		  "proxyMode": 0,
+		  "proxyRate": 20
+		},
+		{ "meshSize": 3,
+		  "udpCumRate": 9.3,
+		  "proxyMode": 1,
+		  "proxyRate": 20
+		},
+		{ "meshSize": 4,
+		  "udpCumRate": 6,
+		  "proxyMode": 2,
+		  "proxyRate": 19
+		},
+		{ "meshSize": 8,
+		  "udpCumRate": 5,
+		  "proxyMode": 2,
+		  "proxyRate": 18
+		}
+	      ]
+	    }
+	  ]
+	}
+      ]
+    }
+  ]
+}

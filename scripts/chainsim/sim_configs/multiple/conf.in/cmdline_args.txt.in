@@ -1,0 +1,7 @@
+--ns3::TcpSocket::SegmentSize=1446
+--ns3::dot11s::HwmpProtocol::MaxTtl=2
+--RngSeed={seed}
+--meshSize={meshSize}
+--staSize={staSize}
+--cwmin={cwmin}
+--ns3::dot11s::PeerLink::MaxRetries={peerLinkRetries}

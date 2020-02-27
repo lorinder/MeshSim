@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import getopt
+
+# Import the genconf library
+sys.path.append(os.path.dirname(os.path.realpath(__file__))
+                + os.sep + "modules")
+import genconf
+
+def usage():
+    print("Creates configuration directory based on template dir")
+    print("")
+    print("Preprocesses files in a template folder and places")
+    print("the resulting files into a configuration directory.")
+    print("")
+    print("The template directory contains template configuration")
+    print("files.  The following kinds are supported:")
+    print("  - files ending in .in are preprocessed with python")
+    print("    style template substitution, i.e., occurrences of")
+    print("    \"{key}\" are replaced with the corresponding value.")
+    print("  - files ending in .php are interpreted with PHP")
+    print("    and the result is placed in the output directory.")
+    print("  - all other files are copied verbatim.")
+    print("The template suffix (.in or .php) is stripped from the")
+    print("filename in the output directory.")
+    print("")
+    print("  usage: [-d outdir] [key1=val1] [key2=val2] ...")
+    print("")
+    print("replaced by \"val\" as specified on the command ")
+    print("line.")
+    print("")
+    print("  -h        display this help and exit")
+    print("  -i <dir>  template config dir [%s]" % indir)
+    print("  -d <dir>  save config to specified dir [%s]" % outdir)
+
+# defaults
+indir = 'conf.in'
+outdir = 'conf'
+
+# parse args
+opts, posargs = getopt.getopt(sys.argv[1:], "hi:d:")
+for o, a in opts:
+    if o == '-h':
+        usage()
+        sys.exit(0)
+    elif o == '-i':
+        indir = a
+    elif o == '-d':
+        outdir = a
+
+# create kv from positional arguments
+kv = {}
+for a in posargs:
+    idx = a.find('=')
+    if idx == -1:
+        sys.stderr.write("Error:  Missing = in assignment `%s'.\n" % a)
+        sys.exit(1);
+    kv[a[:idx]] = a[idx + 1:]
+    
+# Apply template
+genconf.apply_template(indir, outdir, kv)

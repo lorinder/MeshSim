@@ -1,0 +1,4 @@
+standard n5
+ratecontrol ns3::MinstrelHtWifiManager
+
+# vim:ft=conf

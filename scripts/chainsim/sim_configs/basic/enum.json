@@ -1,0 +1,18 @@
+{
+ "type": "cartesian",
+ "vars": {
+   "size": [ 2, 3, 4 ],
+   "seed": [ 1, 2, 3 ],
+   "meshDist": [ 30 ],
+   "staDist": [ 30 ],
+   "hwmp": [ 0 ],
+   "routing": [ "olsr" ],
+
+   "channelNumber": [ 38 ],
+   "peers": [ "intramesh" ],
+   "streamRate": [ 15 ],
+
+   "maxStreams": [ 3 ],
+   "antennas": [ 3 ]
+ }
+}

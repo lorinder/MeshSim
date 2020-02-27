@@ -1,0 +1,8 @@
+# Configuration of the intra-mesh wifi.
+#
+# The file format is the same as apsta_wifi.txt
+
+standard n5
+ratecontrol ns3::MinstrelHtWifiManager
+
+# vim:ft=conf

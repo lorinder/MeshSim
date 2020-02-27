@@ -1,0 +1,42 @@
+# Information on the routing of the nodes
+
+# The first line is a line of the form "proto <protocol>" which
+# describes the routing protocol to be used.  Choices are "olsr", "aodv"
+# and "none".
+proto olsr
+
+# Static routing tables
+#
+# Static routing tables can be used to complement or replace dynamic
+# routing.
+#
+# Below is a simple commented out version of a static routing entry. For
+# a more complete version, look at the routing.txt in
+# example/conf.static/ which contains a complete example.  Since static
+# routing tables are error prone to write by hand, a script such as
+# scripts/genroutingtables can be used.
+#
+# The format of the routing table is first a row of the form
+#
+# routes_on  <ip>
+#
+# where <ip> is the IP address of an (arbitrary) interface for which the
+# subsequent lines give routing entries.  Then there are rows for
+# routing table entries rows of the following form:
+#
+# <target>  <via-local>  [<gateway> [<metric>]]
+#
+# The <target> is the network or host for which the rule applies, of the
+# form a.b.c.d/e or a.b.c.d.  <via-local> is the ip address of one
+# interface of the current host (the host for which the table entry is
+# written).  It describes which interface will take the matching
+# packets.  <gateway> is the IP address of the next host that will
+# process the packet.  The <metric> is the metric of the route, lower
+# means higher priority.
+
+#routes_on 10.1.1.1
+# <target>	<via_local>	<gateway>
+#10.1.2.0/24	10.1.1.1
+#10.1.3.0/24	10.1.1.1
+
+# vim:ft=conf

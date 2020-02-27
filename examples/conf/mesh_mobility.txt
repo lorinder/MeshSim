@@ -1,0 +1,28 @@
+# Configuration file for location of mesh (AP) nodes
+#
+# This file is composed of a first line describing the
+# ns3::PositionAllocator, of the following format:
+#
+# <allocator-type> <attribute-assignments ...>
+#
+# The allocator-type is the ns3 PositionAllocator type, e.g.
+# ns3::GridPositionAllocator or ns3::ListPositionAllocator.  Attribute
+# assignments have the same format as in apps.txt, i.e., each
+# key-value-pair is of the format "key=value" and they are delimited
+# with white space.
+#
+# Optional further lines are of the form
+#
+# <x> <y> [<z>]
+#
+# and are coordinate positions.  Those are useful only for
+# ListPositionAllocator instances.  The z coordinate, if not supplied,
+# is set to 0.
+#
+# The example below uses GridPositionAllocator, the sta_mobility.txt
+# file, which has the same format, uses ListPositionAllocator with
+# explicit coordinates.
+
+ns3::GridPositionAllocator MinX=0 MinY=0 DeltaX=5 DeltaY=5 GridWidth=3
+
+# vim:ft=conf

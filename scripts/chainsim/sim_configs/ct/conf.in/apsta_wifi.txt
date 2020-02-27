@@ -1,0 +1,13 @@
+standard n2.4
+ratecontrol ns3::MinstrelHtWifiManager
+
+#
+# For this example we use the RangePropagationLossModel, in order to
+# force data to go over the mesh hop rather than the STA connecting to
+# the backhaul mesh AP directly.
+#
+
+channel delay ns3::ConstantSpeedPropagationDelayModel
+channel add_loss ns3::RangePropagationLossModel MaxRange=10
+
+# vim:ft=conf
